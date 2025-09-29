@@ -3,7 +3,12 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const genAI = new GoogleGenerativeAI("AIzaSyAMU2-MATPnenfDs6G_rmQDTDSUakmUZrA");
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
+if (!GOOGLE_API_KEY) {
+  throw new Error('Server misconfiguration: GOOGLE_API_KEY not set');
+}
+
+const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export async function generateTestcases({ problemStatement, constraints, normalCount = 3, edgeCount = 2, randomCount = 2 }) {
