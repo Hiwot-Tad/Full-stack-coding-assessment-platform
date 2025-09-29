@@ -1,0 +1,109 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:12345678@localhost:5432/code_assessment?schema=public"
+}
+
+model users {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  password_hash String
+  role          String
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  problems      problems[]
+  submissions   submissions[]
+  assigned      assignments[]
+}
+
+model problems {
+  id                 Int       @id @default(autoincrement())
+  title              String
+  statement          String
+  constraints        Json
+  reference_solution String
+  reference_language String
+  time_limit_minutes Int
+  created_by         Int
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  author  users      @relation(fields: [created_by], references: [id])
+  tests   testcases[]
+  subs    submissions[]
+  assigns assignments[]
+
+  @@index([created_by])
+}
+
+model testcases {
+  id           Int       @id @default(autoincrement())
+  problem_id   Int
+  input        String
+  output       String
+  category     String
+  is_hidden    Boolean @default(true)
+  is_active    Boolean @default(true)
+  generated_by String
+  created_at   DateTime @default(now())
+
+  problem problems @relation(fields: [problem_id], references: [id])
+  results submission_results[]
+
+  @@index([problem_id, is_hidden])
+}
+
+model submissions {
+  id                 Int       @id @default(autoincrement())
+  candidate_id       Int
+  problem_id         Int
+  code               String
+  last_saved_code    String
+  language           String
+  passed_count       Int       @default(0)
+  total_count        Int       @default(0)
+  status             String
+  submission_status  String
+  created_at         DateTime  @default(now())
+  score              Int? // New field for storing the score
+  evaluation         String? // New field for recruiter's evaluation
+
+  candidate users     @relation(fields: [candidate_id], references: [id])
+  problem   problems  @relation(fields: [problem_id], references: [id])
+  results   submission_results[]
+
+  @@index([candidate_id, problem_id, submission_status])
+}
+
+model submission_results {
+  id             Int        @id @default(autoincrement())
+  submission_id  Int
+  testcase_id    Int
+  actual_output  String
+  status         String
+  created_at     DateTime   @default(now())
+
+  submission submissions @relation(fields: [submission_id], references: [id])
+  testcase   testcases   @relation(fields: [testcase_id], references: [id])
+
+  @@index([submission_id])
+}
+
+model assignments {
+  id          Int       @id @default(autoincrement())
+  problem_id  Int
+  user_id     Int
+  assigned_at DateTime  @default(now())
+
+  problem problems @relation(fields: [problem_id], references: [id])
+  user    users    @relation(fields: [user_id], references: [id])
+
+  @@unique([problem_id, user_id])
+  @@index([user_id])
+}
